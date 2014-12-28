@@ -33,3 +33,7 @@ array =[10, 2, 4, 5, 1, 7]
 [14, 17, 21].each do |x|
   puts "sum of #{x} exists? #{find_sum_in_array(array, x)}"
 end
+
+# b) Assume that S is sorted. Give an O(n) algorithm for the problem.
+#
+# The same solution as above without the need to sort the array.
