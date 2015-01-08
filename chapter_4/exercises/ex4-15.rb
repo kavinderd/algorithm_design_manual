@@ -13,3 +13,6 @@
 # from the array leaving n-1 elements. Then bubble down can be called on the n-1 array which 
 # takes log(n-1) time. Finally you can call extract min. In total finding the second-largest element
 # would require n-1+logn-1 = n + logn - 2
+#
+# To solve b, do the same as a just remove one additional element, so n-1 + logn-1 + logn-2. The algorithm will
+# need to remove the top two largest as it finds the third largest.
