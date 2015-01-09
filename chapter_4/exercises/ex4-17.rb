@@ -18,4 +18,8 @@
 # b) Suppose quicksort were always to pivot on the [n/3]th smallest value of the current sub-array. How many comparisons would be made
 # then in the worst case? 
 #
+# In the case of choosing the n/3th smallest item we would make roughly O(nlogn) comparisons as each partition would result in a 
+# sub array that is 1/3 the size and another 2/3 the size of the previous array. The first two partitions would take
+# n + n/3 + 2n/3 comparisons. As n grows increasingly large this would eventually convene on O(nlogn).
+#
 # 
