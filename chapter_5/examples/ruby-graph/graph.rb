@@ -1,3 +1,7 @@
+require 'pry-byebug'
+require_relative "bfs"
+require_relative "bipartite"
+require_relative "dfs"
 MAXV = 1000
 
 class EdgeNode < Struct.new(:y, :weight, :next); end;
@@ -26,7 +30,7 @@ def insert_edge(g, x, y, directed)
   end
 end
 
-def read_graph(g, directed)
+def read_graph(g, directed=false)
   initialize_graph(g, directed)
   puts "Enter the number of vertices and the number of edges (e.g. 5 5)"
   g.nvertices, edges = gets.chomp.split.map { |char| char.to_i }
@@ -48,4 +52,3 @@ def print_graph(g)
     print "\n"
   end
 end 
-

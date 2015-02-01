@@ -1,0 +1,443 @@
+# Graphs
+
+Graphs are not often used in our day to day programming. We tend to treat most of our information as a series of lists that we run various operations on. However, computer science would be severely crippled without its ability to model scenarios without graphs. 
+
+The applicability of a graph structure can span from electric circuits to social networks and everything in between. Any situation where you have connections between 'things' and those 'things' have connections to other 'things', you probably could use a graph.
+
+## Types of Graphs
+
+Steve Skiena's Algorithm Design Manual has a beautiful explanation of the various types of Graphs using questions about a example social network. The answer to each question reveals an important aspect of how the graph should be constructed.
+
+- You're my friend, so am I your friend? The answer to this reveals if we are dealing with a *directed* or *undirected* graph. Facebook for instance is an *undirected* graph, when two members are friends, regardless of who initiated the friend request, that relationship goes both ways. Twitter, on the other hand, is a directed graph where the members you follow do not necessarily follow you back. Thus, in twitter, those edges ( relationships) between the vertices (members) go in a single direction, hence *directed* 
+- Are you an acquaintance, friend, or bff? If we were to mirror our real lives we would judge or weigh our relationships with others based on familiarity or various other criteria. In a graph the representation of this value would denote an edge's weight. Hence a graph that allows for edges to have different weight values is considered a *weighted* graph. In the facebook example, relationships overtly are the same and appear to be *unweighted*; A friend is a friend is a friend. But, Facebook is far more clever behind the scenes and based on which friends we interact with more on their platform an implicit weight is calculated in order to then present information on that friend more often. *Unweighted* graphs are fairly limited in their uses and what they reveal about the edges on a graph. *Weighted* graphs can be extremely useful but add a layer of complexity. One thing to note about *weighted* graphs is that the weight value itself can denote all sorts of things. In a road network for instance, the weigth may be the length of passage, speed-limit, toll, etc. 
+- Can I your work friend and school friend? If the answer to this question is 'no' then we are dealing with a *simple* graph. A *simple* graph is one in which there are no loops from a vertex to itself or multiple edges between the same two vertices. However, if I can be both your work friend and school friend, then we are describing a *non-simple* graph. In a social network a loop from a user to itself doesn't seem possible, but if you use Twitter you'll notice that your tweets do show up on your own feed. Twitter may not allow for *multiedges* but it could be considered *non-simple* in that you follow your own tweets, or at least appear to.
+- Who has the most friends? An obviously important question regardless of the demographic, in a graph the answer to this question would reveal the vertex with the highest *degree*. The *degree* denotes the number of edges connected to a vertex. In a larger context, a graph is considered *dense* if most vertices have a high degree and *sparse* if they do not. Facebook for instance is a *sparse* graph. Even your most popular friends may have in the thousands of friends, but that is of a possible billion or so users. Obviously, the ideal graph we all strive to be a part of is a *regular* graph where each vertex has an equal degree.
+- Does it matter where I live? If yes, then we are talking about an *embedded* graph. An *embedded* graph is one in which vertices are mapped onto a plane. In the case of a social network that plane is the world. The alternative to that is a $$$$$$$$ 
+- Do you know that friend of a friend of a friend? When a graph is aware of the connections of all vertices then it is considered *explicitly* defined. In a small subset, a graph may be *explicit*. For example, facebook may cache information on closely related friends-of-friends whenever you login. It then uses this information to suggest new friends to you. However, the entire social graph is *implicitly* defined. Without querying the graph, facebook doesn't *explicity* know of any relation between you and someone 10 degrees away from you.
+
+Graphs are useful because they of their versatility and the way real-life models naturally fit into them. As portrayed above, understanding a problem as a graph can be as simple as asking basic questions about the nature of a relationship.
+
+## Implementing Graphs
+
+Despite how great Graphs are, they are not built in data structures in any programming language. Rather, Graphs are built using simpler structures such as lists and arrays.
+
+The two primary data structures used to define a graphs are the Adjacency Matrix and Adjacency List. Both are easy to understand and implement, but there are tradeoffs between the two.
+
+### Adjacency Matrix
+
+An *n x n* matrix *M* where M[i,j] = 1 if there is an edge between *i* and *j* or 0 if there isn't. The key advantage of using this structure is that querying for whether an edge exists between *i* and *j* takes constant time. Similarly, deletion is also an O(1) operation as it simple requires flipping the value at M[i,j]. However, an Adjacency Matrix requires n^2 space regardless of the number of edges and traversing from two unconnected vertices can take O(n^2) time as for every vertex *n* we would potentially need to check if it is connected to any other *n*.
+
+    "a" "b" "c" "d" "e"
+"a"  0   1   0   0   1
+"b"  1   0   1   0   0
+"c"  0   1   0   1   0
+"d"  0   0   1   0   1
+"e"  1   0   0   1   0
+
+### Adjacency Lists
+
+An array of each vertex where the value of each array index is a linked list of adjacent vertices. Perhaps more complex than adjacency matrices, the Adjacency List is far more useful for most Graph problems. First of all, an Adjacency List uses less memory *m + n* where *m* is the number of edges and *n* the number of vertices, space isn't wasted on marking non-existent edges as it is in a Adjacency Matrix. Additionally, traversing the graph is significantly faster O(n + m) as starting from *i* requires walking across its linked-list of edges. The tradeoff that an Adjacency List makes is that querying for whether an edge *(i,j)* exists is not nearly as efficient as it is in an matrix. However, using efficient search algorithms such as Breadth-First and Depth-First search mitigate that issue.
+
+"a" = { "e", "b" }
+"b" = { "a", "c" }
+"c" = { "b", "d" }
+"d" = { "c", "e" }
+"e" = { "d", "a" }
+
+### In Ruby
+
+For our implementation, I've used an Adjacency List.
+
+<% code("ruby") do %>
+  MAXV = 1000
+  struct Edge < Struct.new(:y, :weight, :next); end;
+  struct Graph < Struct.new(:edges, :degree, :nvertices, :nedges, :directed); end;
+
+  # Nothing special here, just initializing the graph and 
+  # setting its various properties to 0 or blank
+  def initialize_graph(graph, directed = false)
+  graph.nvertices = 0
+  graph.nedges = 0
+  graph.directed = directed
+  graph.degree = []
+  graph.edges = []
+  1.upto(MAXV) do |i|
+    graph.degree[i] = 0
+  end
+
+  # To insert an edge we first create a new edge and sets its next value
+  # to the current next value of the 'from' vertice. For instance if we have
+  # a graph 1--2--3 and we want to add the edge 2--4 when we call
+  # insert_edge(graph, 2, 4, false) the new edge created in the first
+  # line of this method would have 3 as its next value
+  #
+  # Then x's edge value is updated to the new edge we've created. This
+  # has no effect on 3 in our example, but simply is a LinkedList of edges to edges
+  # whose head we update when inserting a new edge.
+  #
+  # Note that in the case of an undirected graph we simply call insert_edge with the
+  # reverse of x,y.   
+  def insert_edge(graph x, y, directed)
+    edge = Edge.new(y, nil, graph.edges[x])
+    graph.edges[x] = edge
+    graph.degree[x] += 1
+    if directed
+      graph.nedges += 1
+    else
+      insert_edge(g, y, x, true)
+    end
+  end
+
+  # The purpose of this method is to take user input to configure the graph
+  # the initial number of vertices and edges is denoted by (number) (number)
+  # and likewise each edge is denoted by (start) (end)
+  def read_graph(graph, directed=false)
+    initialize_graph(graph, directed)
+    puts "Enter the number of vertices and the number of edges ( e.g. 5 5)"
+    g.nvertices, edges = gets.chomp.split.map { |char| char.to_i }
+    puts "Enter each edge (e.g. 1 2)"
+    1.upto(edges) do |i|
+      x, y = gets.chomp.split,map { |char| char.to_i }
+      insert_edge(graph, x, y, directed)
+    end
+  end
+
+  # To print the graph we first print the vertice and then every
+  # edge it reaches to. For instance,
+  #
+  # 1: 2,3
+  # 2: 1
+  # 3: 3
+  #
+  def print_graph(graph)
+    1.upto(nvertices) do |i|
+      print "#{i}:"
+      p = graph.edges[i]
+      while p
+        print " #{p.y}"
+        p = p.next
+      end
+      print "\n"
+    end
+  end
+
+<% end %>
+
+## Graph Traversal
+
+The key action taken on any graph is traversal across vertices. Traversing a graph in different ways allows us to answer different questions, who has the most friends? vs how many degrees away is X from Y? Traversing a graph is more complicated than walking through an array or even a tree because there is no distinct start or end to a graph. Therefore, graph search algorithms use breadcrumbs to keep track of which edges have or haven't been explored yet. In this system at any one time a vertex will be in three states:
+
+- undiscovered: The vertex simply hasn't been encountered
+- discovered: The vertex has been found, but its edges haven't been explored
+- processed: The vertex and its edges have been explored
+
+### Breadth First Search
+
+A Breadth First Search is better at answering the question 'How many friends do I have?' over 'Which friend has the most amount of friends'. This is because, as the name suggests, a Breadth First Search (BFS) begins at *x*, processes all vertices connected to *x* and then proceeds to do the same for each of those vertices. The key data structure in managing a BFS is a queue. As a First in First Out (FIFO) Data Structure a Queue forces a BFS to examine vertices in the order in which they are found. For instance given the following Graph
+
+PICTURE OF GRAPH
+
+A BFS beginning at 1 would first enqueue 2,5, and 6. Then it would process vertex 2 and add 3, 4 to the Queue. However, 3 and 4 wouldn't be processed immediately since the Queue now appears as [5,6,3,4]. In this way, our BFS would follow a traversal as shown in the figure below.
+
+FIGURE OF BFS
+
+Words and figures can only go so far, an implementation will clear things up.
+
+<% code("ruby") do %>
+ module BFS
+   extend self
+
+   # The BFS will maintain two boolean arrays
+   # @processed -> maintains if a vertex has been processed
+   # @discovered -> maintains if vertex has already been encountered
+   # finally the @parent array allows us to keep track of the parent
+   # vertex for any encountered vertex
+   def initialize_search(graph)
+     @processed = []
+     @discovered = []
+     @parent = []
+     1.upto(graph.nvertices) do |i|
+       @processed[i] = @discovered[i] = false
+       @parent[i] = -1
+     end
+   end
+
+   # The bfs method as explained above uses a queue and the 
+   # @processed and @discovered arrays that we initialized earlier.
+   # For every vertex bfs encounters it takes the following actions:
+   #   -If the vertex has NOT been processed and the graph is NOT directed
+   #    it processes the edge
+   #   -If the vertex has NOT been discovered then it enqueue's the vertex
+   #    and flips the flag in @discovered at that vertex's position.
+   #
+   # Note that the two if blocks are working on two separate things. The first
+   # checking the status in @processed is seeking to process the edge between
+   # v and y. The second if statement with !@discovered[y] is about processing
+   # the vertex y itself.
+   def bfs(graph, start)
+     queue = []
+     queue.push start
+     @discovered[start] = true
+     while queue.any?
+       v = queue.shift
+       process_vertex_early(v)
+       @processed[v] = true
+       p = graph.edges[v]
+       while p
+         y = p.y
+         if !@processed[y] || graph.directed
+           process_edge(v,y)
+         end
+
+         if !@discovered[y]
+           queue.push y
+           @discovered[y] = true
+           @parent[y] = v
+         end
+         p = p.next
+       end
+       process_vertex_late(v)
+     end
+   end
+
+   def process_vertex_early(v)
+     puts "Pre-Process #{v}"
+   end
+
+   def process_vertex_late(v)
+     puts "Post-Process {#v}"
+   end
+
+   def process_edge(x,y)
+     puts "Processing edge #{x} #{y}"
+   end
+ end 
+
+ Note that BFS lends itself to a wide variety of uses via the methods `process_vertex_early`, `process_vertex_late` and `process_edge`. BFS as an algorithm simply ensures we'll through all the vertices, what we do at each vertex and edge is up to our implementation.
+
+#### What's the use?
+
+- Find Path
+
+A straightforward use that BFS provides is finding the path between two vertices *x* and *y*. After running a BFS we are left with an array matching vertices to their parents. So when we want to know the path between *x* and *y* all we need to do is backtrack from y to x along that `@parent` array.
+
+<% code("ruby") do %>
+  module BFS
+    def find_path(from, to)
+      if from == to || end == - 1
+        puts "Start: #{from}"
+      else
+        find_path(from, @parents[to])
+        puts "Then: #{to}"
+      end
+    end
+  end
+<% end %>
+
+The use of recursion is quite clever as it gives the ultimate illusion that we actually started our search at `from` when in fact our base case is when we backtrack to `from`.
+
+- Connected Components
+
+Graphs are valued not only for holding information on the relationship between two vertices, but also the relationships between groups of vertices. The term for any two vertices that have a path between them is *connected*. If I know you, and you know Bob and Bob knows Jane, then I am *connected* to Jane. Six Degrees of Kevin Bacon is an example of how graphs can be used to denote how two vertices (actors) are related to one another even if it is by 6 degrees.
+
+When a set of vertices exist that each have a path to the other, this is called a *connected component*. All the towns on New Zealand are part of a *connected component" of drive-able locations, but no town in Australia is part of that set. However, if we consider places reachable by air, then nearly every location in the world is part of the same *connected component*. In application, determining the existence of a *connected component* can tell us if we can find our way through a maze no matter where we start, or calculate closely related groups in a larger set such as a college graduating class or members of a club. 
+
+In code, finding *connected components* is simply an extensions of a BFS. Since running a BFS assures us that we will find every vertex *connected* to our starting point, those all comprise of a *connected component*. Thus, the algorithm to find all the *connected components* in a graph is described in the following steps:
+
+- Loop over all the vertices in a graph
+- When we find a vertex that hasn't been discovered increment the *connected component* count by 1 and run BFS
+
+Simple enough. Since the BFS marks vertices as discovered, looping over all the vertices would effectively be an O(n) opertation in a graph that has a low number of *connected components* to overall vertices. 
+
+<% code("ruby") do %>
+  module BFS
+    def connected_components(graph)
+      initialize_search(graph)
+      connected_component_count = 0
+      
+      1.upto(graph.nvertices) do |i|
+        unless @discovered[i]
+          connected_component_count += 1
+          puts "Component #{connected_comoponent_count}"
+          bfs(grpah, i)
+        end
+      end
+      connected_component_count
+    end
+  end
+<% end %>
+
+- Two Coloring/Bipartite Graphs
+
+Often there models where graph vertices cannot be adjacent to graph vertices of a similar type. For instance, if we model an online ads we would have some vertices be ads and other queries, the edges denoting clicks. It wouldn't make sense for an ad to link to another ad, so we would expect every edge to connect a query to an ad. The problem of ensuring this condition is known as a *vertex-coloring* problem, where we seek to color each vertex in a way that two vertices of the same color never share an edge. The colors we choose are irrelevant as long as they are consistent. A *bipartite* graph, like our ad network, is one in which the graph can satisfy the *vertex-coloring* problem with only two colors.  
+
+Just as we could find a connected component by leveraging the BFS, we can do the same for maintaining a *bipartite* graph. When the BFS finds a new vertex we color it opposite to its parent and for every edge between colored vertices we check if the two are the same colors. The goal of two-coloring is to check whether our graph can be *bipartite* or not.
+
+<% code("ruby") do %>
+  module BFS
+    UNCOLORED = nil
+    WHITE = 0
+    BLACK = 1
+
+    # For two coloring we maintain an array of colors for each vertex
+    # Setting each vertex to nil isn't required in a language like ruby
+    # but I included it for clarity. 
+    # Similar to our search for connected components we loop over every
+    # vertex, but number of times we actually enter the conditional block
+    # within the loop will likely be very few.
+    def two_color(graph)
+      @color =[]
+      @is_bipartite = true
+      1.upto(graph.nvertices) { |i| @color[i] = UNCOLORED }
+
+      initialize_search(graph)
+
+      1.upto(graph.nvertices) do |i|
+        unless @discovered[i] 
+          @color = WHITE
+          bfs(graph, i)
+        end
+      end
+      @is_bipartite
+    end
+
+    # Here we override the initial process_edge method
+    # and check if two adjacent vertices that have been discovered
+    # share the same color
+    #
+    # We also set the color of y to be the reverse of x
+    def process_edge(x, y)
+      if @color[x] == @color[y]
+        @bipartite = false
+        puts "Warning: not bipartite due to #{x} and #{y}"
+      end
+      @color[y] = complement_color(@color[x])
+    end
+
+    def complement_color(color)
+      color == WHITE ? BLACK : WHITE
+    end
+  end
+<% end %>
+
+Given the following graph
+
+EXAMPLE OF GRAPH
+
+1 ----- 2 ----- 3
+|       |       |
+|       |       |
+|       |       |
+------- 5 ----  4
+
+When we run two-color starting at 1 the coloring would occur in the following manner:
+
+- 1 colored WHITE
+- 2 colored BLACK
+- 5 colored BLACK
+- 6 colored BLACK
+- 3 colored WHITE
+- 4 colored BLACK
+- Warning raised about 5 and 4
+
+This graph cannot be bipartite due to vertex 4 and 5. A graph can't be fixed to become bipartite without removing edges or inserting vertices. The following graph however is bipartite,
+
+1 --- 2 --- 3 --- 4 --- 5 ---- 6 --- 1
+
+- 1 colored WHITE
+- 2 colored BLACK
+- 3 colored WHITE
+- 4 colored BLACK
+- 5 colored WHITE
+- 6 colored BLACK
+
+### Depth-First Search
+
+BFS is great, but it doesn't answer all the interesting questions we have about graphs. Sometimes we need to turn to its sister traversal algorithm Depth-First Search (DFS). As you may have already guessed, where the BFS first spreads a wide net from a vertex to all adjacent vertices before traversing any further degrees, the Depth First Search traverses as far as possible before moving on to the next adjacent vertex to the starting vertex. For the following graph,
+
+IMAGE OF GRAPH
+
+The DFS starting at 1 would occur in the following order,
+
+ORDER OF DFS
+
+Changing a BFS to become a DFS is not simply a matter of altering code, but the underlying data structure we use to manage the order of the `@discovered` vertices. In a BFS we use a Queue because we want FIFO (First in first out) behavior; a result of this is edges closer to our starting point are always processed before ones farther away. A DFS requires the converse behavior, LIFO (Last in first out). Thus, the suitable data structure is a Stack. Using a stack we process the newest vertices first, that also happen to be the farthest from our initial starting point.
+
+A clever feature of a DFS implementation can be record of traversal 'times'. By noting the 'starting time' and 'ending time' of when we enter a vertex and explore its connections and then subsequently back out of it we can easily answer relavent questions we may have about our graph data such as,
+
+- Who is an ancestor of *x*?: If vertex *x*'s times are bounded by vertex *y*'s entry and exit time then *y* is an ancestor of *y*
+- How many descendents: In the implementation provided below the concept of 'time' is incremented every time we encounter a new vertex. Thus, the difference between vertex *y*'s entry and exit time is the number of descendents it has.
+
+In addition to the notion of time being a side-effect of DFS, the traversal algorithm also splits all edges into to categories, *tree edges* and *back edges*. A *tree edge* is one that points from an ancestor to a descendent, while a *back edge* points from a descendent to a previously encountered ancestor not necessarily the most immediate one. Because a DFS explores througha vertex's entire connections before moving to a neighboring edge, the algorithm doesn't encounter a brother or cousin edge as this arrangement would not be possible. 
+
+<% code("ruby") do %>
+  module DFS
+    extend self
+
+    def initialize_search(graph)
+      @entry_time = []
+      @time = 0
+      @exit_time = []
+      @finished = false
+    end
+
+    # Note that our implementation doesn't actually need to keep a stack 
+    # but instead can use recursion to mimic the same LIFO behavior
+    def dfs(graph, v)
+      return if @finished
+
+      discovered[v] = true
+      # For every vertex we encounter we increment the time and
+      # set the current time as the entry time for the vertex
+      @time += 1
+      @entry_time[v] = @time
+      process_vertex_early(v)
+
+      p = graph.edges[v]
+      while p
+        y = p.y
+        # Just as in the BFS we want to act on undiscovered vertices
+        if !@discovered[y]
+          @parent[y] = v
+          process_edge(v,y)
+          # Recursion can be tricky to get our head around.
+          # Here we call dfs recursively with the descendent of v
+          # This recursion continues for every v that has an undiscovered connected vertex.
+          # The beauty of the recursive nature of dfs is that 
+          # all the instrumentation of @time and @entry/@exit_time simply 
+          # works and at the end of dfs all of those data points are accurate
+          #
+          # Had this been implemented with a stack we would first need to push on the stack
+          # each of descendent until we ran out and then pop each one from the end and 
+          # process it. That would simply result in more code for the same effect.
+          dfs(g,y)
+        elsif( !@processed[y] && @parent[v] != y) || g.directed
+          # If we encounter an discovered but unprocessed y which is not the 
+          # parent of our initial v then we process the edge.
+          #
+          # DFS ends up in this situation when meet a descendent of vertex that has a 
+          # back-edge up to that vertex. Note, that this doesn't apply for an edge
+          # to the immediate parent. Also note, in a directed graph such conditions
+          # aren't required.
+          process_edge(v, y)
+        end
+        return if @finished
+        p = p.next
+      end
+      
+      process_vertex_late(v)
+      @time += 1
+      @exit_time[v] = @time
+      @processed[v] = true
+    end
+  end
+<% end %>
+
+Aside from the perhaps mind twisting aspect of the recursion used in DFS it is similar to BFS and ultimately does the same thing, traverses every vertex. While BFS is good for finding a path between vertices and connected components, the DFS has its own strengths.
+
+- Finding Cycles
+
+If you recall when we detailed aspects of a 
+
+
+
