@@ -3,6 +3,8 @@ module Bipartite
   UNCOLORED = nil
   YELLOW = "yellow"
   GREEN = "green"
+  WHITE = "white"
+  BLACK = "black"
 
   def two_color(g)
     @color = []
@@ -26,7 +28,7 @@ module Bipartite
       @bipartite = false
       puts "Warning: not bipartite due to #{x} and #{y}"
     end
-    @color[y] = complement(@color[y])
+    @color[y] = complement(@color[x])
   end
 
   def complement(color)
