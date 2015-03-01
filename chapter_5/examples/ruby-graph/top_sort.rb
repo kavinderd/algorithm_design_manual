@@ -2,6 +2,7 @@ module TopSort
 
   def initialize_search(g)
     @sorted_stack = []
+    super
   end
 
   def top_sort(g)
