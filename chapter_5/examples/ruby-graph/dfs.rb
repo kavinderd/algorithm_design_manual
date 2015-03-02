@@ -26,7 +26,7 @@ module DFS
       elsif (!@processed[y] && @parent[v] != y) || g.directed
         process_edge(v, y)
       end
-      return if @finished
+      #return if @finished
       p = p.next
     end
 
