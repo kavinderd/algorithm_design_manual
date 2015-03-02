@@ -29,7 +29,6 @@ end
 
 extend Arboreal
 
-initialize_search(g)
 1.upto(g.nvertices) do |i|
   initialize_search(g)
   dfs(g, i)
